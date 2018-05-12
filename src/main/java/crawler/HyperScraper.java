@@ -78,27 +78,12 @@ public class HyperScraper {
 			Configuration config = new Configuration();
 			if (!config.isValid) return;
 			setupThreadNumbers(config);
-			Thread localFileSearcher = new Thread(new LocalDirectorySearcher(config));
-			localFileSearcher.start();
 			startUploadingThreads(config);
 			startScrapingThreads();
 			startFileSearchingThreads();
 			writeStatusToLogFile("Beginning to Scrape!\n\n");
 			short numUrls = processInput();
 			finishedMainFlag = true;
-			if (!debugMode) {
-				
-				// Check if after 30 seconds of runtime, we have managed to make the sftp connection
-				Thread.sleep(30000);
-				if (!LocalDirectorySearcher.connected) {
-					writeStatusToLogFile("Couldn't connect to the SFTP, downloading files anyway\n");
-					
-					// We couldn't make the connection, wait for 50 minutes(for the scraping threads to scrape) then terminate
-					Thread.sleep(3000000);
-					writeStatusToLogFile("Couldn't connect to the SFTP, terminating Scraper!\n");
-					return;
-				}
-			}
 			terminateThreads(scrapingThreads);
 			writeStatusToLogFile("Still uploading local files to SFTP server.......................");
 			terminateThreads(fileSearchingThreads);
