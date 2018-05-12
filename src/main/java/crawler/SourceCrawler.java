@@ -46,7 +46,7 @@ public class SourceCrawler extends WebCrawler {
 	public SourceCrawler(String mainUrl, XmlTagSettings xmlTagSettings) {
 		this(mainUrl, xmlTagSettings, "");
 	}
-	
+
 	public SourceCrawler(String mainUrl, XmlTagSettings xmlTagSettings, String referrer) {
 		String imageFail = mainUrl.toLowerCase();
 		if (imageFail.endsWith(".png") || imageFail.endsWith(".ico") || imageFail.endsWith(".gif")
@@ -62,19 +62,18 @@ public class SourceCrawler extends WebCrawler {
 		this.xmlTagSettings = xmlTagSettings;
 		crawlPage(referrer);
 	}
-	
+
 	/**
 	 * Recursively scrapes CSS files from main domain.
-	 * 
-	 * @param url
-	 *            - the current url(main domain is the main)
+	 *
+	 * @param url - the current url(main domain is the main)
 	 */
 	public void crawlPage(String referrer) {
 		try {
 			this.document = Jsoup.connect(mainUrl).userAgent(xmlTagSettings.userAgent).cookies(xmlTagSettings.cookies)
 					.timeout(30000).maxBodySize(0).referrer(referrer).get();
 			document.outputSettings().escapeMode(EscapeMode.xhtml);
-			
+
 			// Finds inner CSS files found in <link> tags
 			getCssLinkTags();
 			if (mainUrl.toLowerCase().contains("css") || mainUrl.contains("?")) { // For
@@ -112,15 +111,14 @@ public class SourceCrawler extends WebCrawler {
 			this.document = null;
 		}
 	}
-	
+
 	/**
 	 * Receives the URL just connected to and returns a valid path for creating
 	 * the CSS file, also checks if the file already exists.
-	 * 
-	 * @param url
-	 *            - The URL
+	 *
+	 * @param url - The URL
 	 * @return - The destination of the file. If the file already exists returns
-	 *         null.
+	 * null.
 	 */
 	public String createFileDestination(String url) {
 		String destination = null;
@@ -172,13 +170,13 @@ public class SourceCrawler extends WebCrawler {
 
 	/**
 	 * Tries to reconnect to the main URL until it meets the allowed limit.
-	 * 
+	 *
 	 * @param e
 	 * @throws IOException
 	 */
 	private void tryReconnecting(Exception e) throws IOException {
 		String error = e.toString();
-		
+
 		// Try again
 		if (connectionTries < 5 && error.contains("404")) {
 			connectionTries++;
@@ -195,9 +193,8 @@ public class SourceCrawler extends WebCrawler {
 
 	/**
 	 * Writes the DOM content to the path of the destination received.
-	 * 
-	 * @param destination
-	 *            - the path of the file to be written.
+	 *
+	 * @param destination - the path of the file to be written.
 	 */
 	public void writeCssToFile(String destination) {
 		BufferedWriter writer = null;
@@ -241,10 +238,9 @@ public class SourceCrawler extends WebCrawler {
 
 	/**
 	 * Generates a regEx for replacing the main URL with the SFTP url
-	 * 
-	 * @param i_LocalDestination
-	 *            - The local path of this CSS file - in order to parse the main
-	 *            domain.
+	 *
+	 * @param i_LocalDestination - The local path of this CSS file - in order to parse the main
+	 *                           domain.
 	 * @return - The regEx.
 	 */
 	private String generateRegexForSftp(String i_LocalDestination) {
@@ -270,7 +266,7 @@ public class SourceCrawler extends WebCrawler {
 		}
 		return String.format("%s['\"]", regEx);
 	}
-	
+
 	/**
 	 * Changes the inner image-urls inside the CSS DOM in order to match the
 	 * original reference to the image
@@ -299,11 +295,9 @@ public class SourceCrawler extends WebCrawler {
 	/**
 	 * This method is made to replace all occurrences of a string within the
 	 * StringBuilder object.
-	 * 
-	 * @param original
-	 *            - The original string to replace
-	 * @param replacement
-	 *            - The replacement string.
+	 *
+	 * @param original    - The original string to replace
+	 * @param replacement - The replacement string.
 	 */
 	private void replaceAllOccurrencesWithinTempDOM(String original, String replacement) {
 		int currentIndexOfOriginal = this.tempDOM.indexOf(original);
@@ -314,12 +308,12 @@ public class SourceCrawler extends WebCrawler {
 				lookAHead = currentIndexOfOriginal + original.length();
 				lookAHeadChar = this.tempDOM.charAt(lookAHead);
 				if (lookAHeadChar == '?' || (lookAHeadChar == '2' && original.endsWith("woff"))) { // For
-																									// cases
-																									// where
-																									// woff
-																									// replaces
-																									// woff2
-																									// mistakenly
+					// cases
+					// where
+					// woff
+					// replaces
+					// woff2
+					// mistakenly
 					currentIndexOfOriginal = this.tempDOM.indexOf(original, currentIndexOfOriginal + 1);
 					continue;
 				}
@@ -377,11 +371,9 @@ public class SourceCrawler extends WebCrawler {
 	/**
 	 * Connects to the URL, encodes the stream to BASE 64 and injects it instead
 	 * of the original font URL.
-	 * 
-	 * @param url
-	 *            - The URL object of the font file(to connect to).
-	 * @param fontUrl
-	 *            - The actual url address of the file.
+	 *
+	 * @param url     - The URL object of the font file(to connect to).
+	 * @param fontUrl - The actual url address of the file.
 	 * @throws IOException
 	 */
 	public void encodeAndReplaceFont(URL url, String fontUrl) throws IOException {
@@ -417,22 +409,23 @@ public class SourceCrawler extends WebCrawler {
 		}
 		base64String = null;
 	}
-	
+
 	/**
 	 * Follows redirects until reaching an actual url
+	 *
 	 * @param uc - The initial url connection
 	 * @return - The url connection to the actual url
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
 	private URLConnection followRedirects(URLConnection uc) throws MalformedURLException, IOException {
-		HttpURLConnection conn = (HttpURLConnection)uc;
+		HttpURLConnection conn = (HttpURLConnection) uc;
 		String newUrl = null;
 		String cookies = null;
 		int status = conn.getResponseCode();
 		boolean redirect = isRedirect(status);
 		while (redirect) {
-			
+
 			// get redirect url from "location" header field
 			newUrl = conn.getHeaderField("Location");
 			if (newUrl.startsWith("https")) {
@@ -451,23 +444,24 @@ public class SourceCrawler extends WebCrawler {
 		}
 		return conn;
 	}
-	
+
 
 	/**
 	 * Follows redirects until reaching an actual url - SECURED
+	 *
 	 * @param url - The first secured url
 	 * @return - The url connection to the actual url
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
 	private URLConnection followSecuredRedirects(URL url) throws IOException {
-		HttpsURLConnection conn = (HttpsURLConnection)url.openConnection();
+		HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
 		String newUrl = null;
 		String cookies = null;
 		int status = conn.getResponseCode();
 		boolean redirect = isRedirect(status);
 		while (redirect) {
-			
+
 			// get redirect url from "location" header field
 			newUrl = conn.getHeaderField("Location");
 
@@ -486,6 +480,7 @@ public class SourceCrawler extends WebCrawler {
 
 	/**
 	 * Checks if a given status code is a redirection
+	 *
 	 * @param status - The status code
 	 * @return - Is a redirect
 	 */
@@ -507,7 +502,7 @@ public class SourceCrawler extends WebCrawler {
 	 * method does not set a connection or read timeout and thus might block
 	 * forever. Use copyURLToFile(URL, File, int, int) with reasonable timeouts
 	 * to prevent this.
-	 * 
+	 *
 	 * Parameters: source - the URLConnection to copy bytes from, must not be
 	 * null destination - the non-directory File to write bytes to (possibly
 	 * overwriting), must not be null
@@ -535,7 +530,7 @@ public class SourceCrawler extends WebCrawler {
 		for (String importUrl : importList) {
 			try {
 				tryCssUrl(importUrl, true);
-				
+
 				// This only happens after the import CSS files have been crawled
 				changeImportedPathQueryString(importUrl);
 			} catch (IOException e) {
@@ -569,6 +564,7 @@ public class SourceCrawler extends WebCrawler {
 
 	/**
 	 * Checks if it is needed to change the import urls (if imported from within a css file)
+	 *
 	 * @param originalPartialUrl
 	 * @param permutation
 	 * @param changeImportUrls
@@ -585,14 +581,13 @@ public class SourceCrawler extends WebCrawler {
 	/**
 	 * Changes the url of the import AFTER it has been imported in case it
 	 * contains special characters.
-	 * 
-	 * @param importUrl
-	 *            - The original import URL.
+	 *
+	 * @param importUrl - The original import URL.
 	 */
 	protected void changeImportedPathQueryString(String importUrl) {
 		int indexQ = importUrl.indexOf('?');
 		String changedUrl = "";
-		
+
 		// For CSS which keep changing
 		if (indexQ > -1) {
 			/*
@@ -613,15 +608,9 @@ public class SourceCrawler extends WebCrawler {
 			replaceAllOccurrencesWithinTempDOM(importUrl, changedUrl);
 		}
 	}
-	
+
 	protected String getLocalDestination() {
 		return this.localDestination;
-	}
-}
-RLConnection.HTTP_SEE_OTHER)
-				redirect = true;
-		}
-		return redirect;
 	}
 
 	/*
@@ -631,7 +620,7 @@ RLConnection.HTTP_SEE_OTHER)
 	 * method does not set a connection or read timeout and thus might block
 	 * forever. Use copyURLToFile(URL, File, int, int) with reasonable timeouts
 	 * to prevent this.
-	 * 
+	 *
 	 * Parameters: source - the URLConnection to copy bytes from, must not be
 	 * null destination - the non-directory File to write bytes to (possibly
 	 * overwriting), must not be null
@@ -659,7 +648,7 @@ RLConnection.HTTP_SEE_OTHER)
 		for (String importUrl : importList) {
 			try {
 				tryCssUrl(importUrl, true);
-				
+
 				// This only happens after the import CSS files have been crawled
 				changeImportedPathQueryString(importUrl);
 			} catch (IOException e) {
@@ -690,29 +679,4 @@ RLConnection.HTTP_SEE_OTHER)
 			}
 		}
 	}
-
-	/**
-	 * Checks if it is needed to change the import urls (if imported from within a css file)
-	 * @param originalPartialUrl
-	 * @param permutation
-	 * @param changeImportUrls
-	 */
-	private void changeImportUrls(String originalPartialUrl, String permutation, boolean changeImportUrls) {
-		if (changeImportUrls) {
-			if (this.tempDOM.length() <= 100) {
-				this.tempDOM.append(this.document.body().text());
-			}
-			replaceAllOccurrencesWithinTempDOM(originalPartialUrl, String.format("http://dummytest.clicktale-samples.com/HyperScraper/%s", permutation));
-		}
-	}
-
-	/**
-	 * Changes the url of the import AFTER it has been imported in case it
-	 * contains special characters.
-	 * 
-	 * @param importUrl
-	 *            - The original import URL.
-	 */
-	protected void changeImportedPathQueryString(String importUrl) {
-		int indexQ = importUrl.indexOf('?');
-		String changedUrl = 
+}

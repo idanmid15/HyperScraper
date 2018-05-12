@@ -12,12 +12,9 @@ import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -35,7 +32,7 @@ public class HyperScraper {
 	static String currentUserAgent = null;
 	static String currentUrl = null;
 	static byte scanForToday = 0;
-	static short uploadFileCount = 0;	
+	static short uploadFileCount = 0;
 	static byte numOfFinishedThreads = 0;
 	static Object scrapingThreadLockForNumOfThreadsCount = new Object();
 
@@ -56,7 +53,6 @@ public class HyperScraper {
 	protected static ConcurrentHashMap<File, Boolean> localFileMap = new ConcurrentHashMap<File, Boolean>();
 
 
-
 	public static void main(String[] args) {
 		try {
 			System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
@@ -67,10 +63,10 @@ public class HyperScraper {
 			if (!checkInputFileForDebugMode() && !checkIfScrapingTime(beginDate) && lastScrapeSuccess()) {
 				return;
 			}
-			
+
 			createLogsDirectory(beginDate);
 			updateStatusFile("Running");
-			
+
 			// Creates new log files
 			createEmptyLogs();
 			new File(dateString + "/" + scanForToday + "/companies/").mkdirs();
@@ -78,6 +74,8 @@ public class HyperScraper {
 			Configuration config = new Configuration();
 			if (!config.isValid) return;
 			setupThreadNumbers(config);
+			Thread localFileSearcher = new Thread(new LocalDirectorySearcher(config));
+			localFileSearcher.start();
 			startUploadingThreads(config);
 			startScrapingThreads();
 			startFileSearchingThreads();
@@ -97,12 +95,13 @@ public class HyperScraper {
 			writeStatusToLogFile("\nScraper Terminated Successfully!");
 		} catch (Exception e) {
 			fileErrorHandler(e);
-		} 
+		}
 	}
 
 	/**
 	 * This function sets up the appropriate number of threads in the system, according to what
 	 * has been delivered by the config.
+	 *
 	 * @param config
 	 */
 	private static void setupThreadNumbers(Configuration config) {
@@ -117,6 +116,7 @@ public class HyperScraper {
 
 	/**
 	 * Checks whether or not this is the normal scraping time: 12 am or PM
+	 *
 	 * @param currentDate - The current date.
 	 * @return - Whether or not the scraper should scrape
 	 */
@@ -126,10 +126,10 @@ public class HyperScraper {
 		return ((currentHour >= 12 && currentHour < 13) || (currentHour >= 0 && currentHour < 1));
 	}
 
-	
+
 	/**
 	 * Creates all relevant empty log files within the "logs/" directory.
-	 * 
+	 *
 	 * @throws FileNotFoundException
 	 * @throws UnsupportedEncodingException
 	 */
@@ -147,9 +147,8 @@ public class HyperScraper {
 	/**
 	 * Creates the current run's logs directory based on the current date and
 	 * time.
-	 * 
-	 * @param beginDate
-	 *            - The beginning date object
+	 *
+	 * @param beginDate - The beginning date object
 	 */
 	@SuppressWarnings("deprecation")
 	private static void createLogsDirectory(Date beginDate) {
@@ -160,9 +159,10 @@ public class HyperScraper {
 		scanForToday = (byte) ((beginDate.getHours() >= 12) ? 2 : 1);
 		new File("logs/" + dateString + "/" + hourString + "/ErrorLogs").mkdirs();
 	}
-	
+
 	/**
 	 * Checks if the Scraper should run in debug mode or not.
+	 *
 	 * @return - Boolean which represents whether or not Scraper is in debug mode.
 	 */
 	private static boolean checkInputFileForDebugMode() {
@@ -177,33 +177,12 @@ public class HyperScraper {
 			fileErrorHandler(e);
 		}
 		debugMode = firstLine.contains("<Debug>");
-		
-		// This is so the user won't forget to delete the debug mode after using it.
-		if (debugMode) {
-			deleteContainingLinesFromFile("<Debug>", new File("input/input.xml"));
-		}
 		return debugMode;
 	}
-	
-	/**
-	 * Receives a file and a string which will be searched within the file.
-	 * Deletes all lines containing the string from the file.
-	 * @param i_StringToDelete - The string to be searched and deleted.
-	 * @param i_FileToDeleteFrom - The file to delete lines from.
-	 */
-	private static void deleteContainingLinesFromFile(String i_StringToDelete, File i_FileToDeleteFrom) {
-		List<String> lines;
-		try {
-			lines = FileUtils.readLines(i_FileToDeleteFrom);
-			List<String> updatedLines = lines.stream().map(line -> line.replace("<Debug>", "")).collect(Collectors.toList());
-			FileUtils.writeLines(i_FileToDeleteFrom, updatedLines, false);
-		} catch (IOException e) {
-			fileErrorHandler(e);
-		}
-	}
-	
+
 	/**
 	 * Checks if the Scraper should run due to the fact that the last run failed.
+	 *
 	 * @return - Boolean which represents whether or not Scraper was successful in the last run.
 	 */
 	private static boolean lastScrapeSuccess() {
@@ -219,9 +198,10 @@ public class HyperScraper {
 		}
 		return (checkDebugMode.toLowerCase().startsWith("su"));
 	}
-	
+
 	/**
 	 * Update the status file according to the received status.
+	 *
 	 * @param i_Status - The received status
 	 */
 	private static void updateStatusFile(String i_Status) {
@@ -234,15 +214,14 @@ public class HyperScraper {
 			bufferedWriter.close();
 		} catch (IOException e) {
 			fileErrorHandler(e);
-		} 
+		}
 	}
 
 	/**
 	 * Receives the document read from the "input.xml" file and scrapes each
 	 * url. according to the xml preferences.
-	 * 
-	 * @param doc
-	 *            - The input xml.
+	 *
+	 * @param doc - The input xml.
 	 * @return - The number of urls scraped.
 	 * @throws IOException
 	 */
@@ -281,7 +260,7 @@ public class HyperScraper {
 			uploadingThreads[j].start();
 		}
 	}
-	
+
 	/**
 	 * Starts the threads which will each upload various files to the SFTP.
 	 */
@@ -309,9 +288,8 @@ public class HyperScraper {
 	/**
 	 * Creates an empty log file in a folder which matches the starting time of
 	 * the program.
-	 * 
-	 * @param type
-	 *            - The type of log file to be created.
+	 *
+	 * @param type - The type of log file to be created.
 	 * @throws FileNotFoundException
 	 * @throws UnsupportedEncodingException
 	 */
@@ -323,13 +301,10 @@ public class HyperScraper {
 
 	/**
 	 * Runs statistics of the entire scrape.
-	 * 
-	 * @param beginDate
-	 *            - The time the run has started.
-	 * @param endDate
-	 *            - The time the run has ended.
-	 * @param numUrls
-	 *            - The number of urls read from the input.xml file.
+	 *
+	 * @param beginDate - The time the run has started.
+	 * @param endDate   - The time the run has ended.
+	 * @param numUrls   - The number of urls read from the input.xml file.
 	 * @throws IOException
 	 */
 	protected static void runStatistics(Date beginDate, Date endDate, short numUrls, short numCssFiles)
@@ -345,11 +320,11 @@ public class HyperScraper {
 		bw = new BufferedWriter(new FileWriter("logs/" + dateString + "/" + hourString + "/logs.txt", true));
 		bw.write(
 				"--------------------------------------------------------------------------------------------------------------\n\n\n");
-		
+
 		bw.write(String.format("Total Scraping and uploading Time = %d Hour %d Minutes %.2f Seconds\n", (int) hoursDiff, (int) minutes, seconds));
 		bw.write("Total Number of Urls (from the input) = " + numUrls + " \n");
 		bw.write("Total Number of CSS files = " + numCssFiles + " \n");
-		
+
 		bw.write(String.format("Average Number of CSS files per Url = %.2f\n\n", ((double) numCssFiles / numUrls)));
 		bw.write(String.format("Average Time Per Url = %.2f Seconds\n", ((double) secondsDiff / numUrls)));
 		bw.write(String.format("Average Time Per CSS file = %.2f Seconds\n\n", ((double) secondsDiff / numCssFiles)));
@@ -361,9 +336,8 @@ public class HyperScraper {
 
 	/**
 	 * Simply writes the received status as a string to the log file.
-	 * 
-	 * @param status
-	 *            - The received status to write.
+	 *
+	 * @param status - The received status to write.
 	 */
 	protected static void writeStatusToLogFile(String status) {
 		try {
@@ -375,12 +349,11 @@ public class HyperScraper {
 			fileErrorHandler(e);
 		}
 	}
-	
+
 	/**
 	 * Simply writes the received status as a string to the log file.
-	 * 
-	 * @param status
-	 *            - The received status to write.
+	 *
+	 * @param status - The received status to write.
 	 */
 	protected static void writeStatusToSpecificLogFile(String status, String logFile) {
 		try {
@@ -392,12 +365,11 @@ public class HyperScraper {
 			fileErrorHandler(e);
 		}
 	}
-	
+
 	/**
 	 * Handles File errors (writes them to the fileErrors)
-	 * 
-	 * @param e
-	 *            - The error itself
+	 *
+	 * @param e - The error itself
 	 */
 	protected static void fileErrorHandler(Exception e) {
 		try {
@@ -414,9 +386,8 @@ public class HyperScraper {
 
 	/**
 	 * Deletes a given directory and all of its inner files.
-	 * 
-	 * @param directory
-	 *            - The given directory
+	 *
+	 * @param directory - The given directory
 	 */
 	protected static void deleteDirectory(File directory) {
 		File[] contents = directory.listFiles();
@@ -439,18 +410,17 @@ public class HyperScraper {
 		if (directories != null) {
 			for (File directory : directories) {
 				if ((directory.getName().startsWith(dateString.substring(0, 2)))
-						 && getDirectorySize(directory) < 5000) {
+						&& getDirectorySize(directory) < 5000) {
 					deleteDirectory(directory);
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Calculates the given directory's size of CSS files recursively.
-	 * 
-	 * @param directory
-	 *            - The given directory.
+	 *
+	 * @param directory - The given directory.
 	 * @return - The directory's size in bytes.
 	 */
 	protected static long getDirectorySize(File directory) {
@@ -469,13 +439,12 @@ public class HyperScraper {
 		}
 		return numberOfBytes;
 	}
-	
+
 	/**
 	 * Receives cookies as a single String and returns a HashMap representing
 	 * all cookies.
-	 * 
-	 * @param cookies
-	 *            - The cookie string.
+	 *
+	 * @param cookies - The cookie string.
 	 * @return - Hashmap (pairs) of cookie(key, value).
 	 */
 	public static HashMap<String, String> mapCookies(String cookies) {
@@ -505,64 +474,3 @@ public class HyperScraper {
 		return cookieMap;
 	}
 }
-
-
-*            - The received status to write.
-	 */
-	protected static void writeStatusToLogFile(String status) {
-		try {
-			BufferedWriter bw = new BufferedWriter(
-					new FileWriter(String.format("logs/%s/%s/logs.txt", dateString, hourString), true));
-			bw.write(String.format("%s\n", status));
-			bw.close();
-		} catch (IOException e) {
-			fileErrorHandler(e);
-		}
-	}
-	
-	/**
-	 * Simply writes the received status as a string to the log file.
-	 * 
-	 * @param status
-	 *            - The received status to write.
-	 */
-	protected static void writeStatusToSpecificLogFile(String status, String logFile) {
-		try {
-			BufferedWriter bw = new BufferedWriter(
-					new FileWriter(String.format("logs/%s/%s/%slogs.txt", dateString, hourString, logFile), true));
-			bw.write(String.format("%s\n", status));
-			bw.close();
-		} catch (IOException e) {
-			fileErrorHandler(e);
-		}
-	}
-	
-	/**
-	 * Handles File errors (writes them to the fileErrors)
-	 * 
-	 * @param e
-	 *            - The error itself
-	 */
-	protected static void fileErrorHandler(Exception e) {
-		try {
-			String error = e.toString();
-
-			BufferedWriter bw = new BufferedWriter(new FileWriter(String.format("logs/%s/%s/ErrorLogs/FILEErrorLogs.txt",
-					HyperScraper.dateString, HyperScraper.hourString), true));
-			bw.write(String.format("%s\n", error));
-			bw.close();
-		} catch (IOException e2) {
-			e2.printStackTrace();
-		}
-	}
-
-	/**
-	 * Deletes a given directory and all of its inner files.
-	 * 
-	 * @param directory
-	 *            - The given directory
-	 */
-	protected static void deleteDirectory(File directory) {
-		File[] contents = directory.listFiles();
-		if (contents != null) {
-			
