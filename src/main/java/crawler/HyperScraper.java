@@ -45,7 +45,6 @@ public class HyperScraper {
 	protected static ArrayBlockingQueue<File> localDirectoryQueue = new ArrayBlockingQueue<File>(2000);
 	protected static ArrayBlockingQueue<File> localFileQueue = new ArrayBlockingQueue<File>(1500);
 	protected static ThreadedDownloader[] threadedWebPages;
-	protected static ThreadedUploader[] threadedUploaders;
 	protected static ThreadedFileSearcher[] threadedFileSearchers;
 	protected static Thread[] scrapingThreads;
 	protected static Thread[] uploadingThreads;
@@ -74,9 +73,6 @@ public class HyperScraper {
 			Configuration config = new Configuration();
 			if (!config.isValid) return;
 			setupThreadNumbers(config);
-			Thread localFileSearcher = new Thread(new LocalDirectorySearcher(config));
-			localFileSearcher.start();
-			startUploadingThreads(config);
 			startScrapingThreads();
 			startFileSearchingThreads();
 			writeStatusToLogFile("Beginning to Scrape!\n\n");
@@ -106,7 +102,6 @@ public class HyperScraper {
 	 */
 	private static void setupThreadNumbers(Configuration config) {
 		threadedWebPages = new ThreadedDownloader[config.numOfScrapingThreads];
-		threadedUploaders = new ThreadedUploader[config.numOfUploadingThreads];
 		threadedFileSearchers = new ThreadedFileSearcher[config.numOfLocalFileSearchers];
 		scrapingThreads = new Thread[config.numOfScrapingThreads];
 		uploadingThreads = new Thread[config.numOfUploadingThreads];
@@ -250,16 +245,6 @@ public class HyperScraper {
 		}
 	}
 
-	/**
-	 * Starts the threads which will each upload various files to the SFTP.
-	 */
-	public static void startUploadingThreads(Configuration config) {
-		for (int j = 0; j < threadedUploaders.length; j++) {
-			threadedUploaders[j] = new ThreadedUploader(config);
-			uploadingThreads[j] = new Thread(threadedUploaders[j]);
-			uploadingThreads[j].start();
-		}
-	}
 
 	/**
 	 * Starts the threads which will each upload various files to the SFTP.
